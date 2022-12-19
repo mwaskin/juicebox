@@ -1,7 +1,21 @@
+/* 
+INITIAL SETUP: 
+
+npm init -y
+npm install pg
+npm install nodemon --save-dev (adds as dev dependency)
+createdb juicebox-dev
+psql juicebox-dev (to access in psql shell)
+*/
+
+//imports pg module
 const { Client } = require('pg');
 
+// gives location of db to client to connect to in seed.js
 const client = new Client('postgres://localhost:5432/juicebox-dev');
 
+// grabs the relevant fields for all users from the users table
+// destructure the rows from the results object to only return the an array of objects representing each user
 async function getAllUsers() {
   const { rows } = await client.query(`
     SELECT id, username, name, location, active
@@ -10,17 +24,27 @@ async function getAllUsers() {
   return rows;
 }
 
+// function to assign values to each of the fields (table columns) for each user added to the users table
+// destructure the fields (table columns) object parameter for the specific fields we want to assign values to-- dont need to include "id" or "active" fields, as those are assigned automatically
+// SERIAL (assigned in ascending order starting from 1 for each row added to the table); DEFAULT true (default value is set to true)
+// if you attempt to assign a username belonging to a user already in the table, then this query will not run
+// will be used within the createInitialUsers function in the seed.js to create each initial user for seeding the user table
 async function createUser({ username, password, name, location }) {
   try {
+    // result of the query is an object that contains field "rows" which contains an array, which contains an object for the user we created
+    // destructure so we can assign the user object a variable (user) and return it after the query to be used for seeding the table
     const { rows: [user] } = await client.query(`
-      INSERT INTO users (username, password, name, location)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (username) DO NOTHING
-        RETURNING *;
+    INSERT INTO users (username, password, name, location)
+    VALUES ($1, $2, $3, $4)
+    ON CONFLICT (username) DO NOTHING
+    RETURNING *;
     `, [username, password, name, location]);
-    return user;
+    // query method has 2 parameters (is passed 2 argument): Argument 1 is the PSQL request; Argument 2 is a dependency array of data needed to execute the request
+    // in this case, we pass in the fields we destructured from our parameter
+    // use placeholders ($#) where # is the value's position (starting from 1; in other words, it's index in the dep array +1) in the dependency array makes the query dynamic so it can be reused for more new users
+    return user; //return the user, which we destructured above from the results of the query
   } catch (error) {
-    console.error(error);
+    console.error("Error creating user: ", error);
   }
 }
 
@@ -196,20 +220,29 @@ async function getUserById(userId){
 
 // passed an array of strings (tagList)
 async function createTags(tagList){
+  
+  // if there's nothing in the array of tags, then don't create tags
   if(tagList.length === 0){
     return;
   }
 
   // creates placeholder for each index in the tagList: '$1), ($2), ($3...'
-  //will need to add open/close paren when interpolated
+  //will need to add open/close paren when interpolated to add the first and last parens
+  // maps across the array of tags passed into the createTags function
   const insertValues = tagList.map(
-    (_, index) => `$${index + 1}`).join('), (');
+    // for each element in the array (we don't care about giving it a name here so we say _ )
+    // we take the index of the element we're currently mapping across in the array, and we insert the value of that index +1 into the string to make the placeholder ($1, etc.)
+    (_, index) => `$${index + 1}`).join('), (');// map returns and array of each string that was created; this joins it in a big string with each little string separated by the given separator
   
   // creates placeholder for each index in the tagList: '$1, $2, $3,...'
   //will need to add open/close paren when interpolated
+  //same thing here, but different separator. see if you can figure out why from the small example screenshots in the workshop
   const selectValues = tagList.map(
     (_, index) => `$${index + 1}`).join(', ');
 
+//write a query here to Insert each of the tag name values from the tagList array Into the tags table
+//remember, you have something you could include in the query that adds the string of tag name placeholders for you
+//remember, there's a little something you need to add to your query for it to know what array of tags it's supposed make placeholders for
   try {
     await client.query(`
       INSERT INTO tags(name)
@@ -217,6 +250,12 @@ async function createTags(tagList){
         ON CONFLICT (name) DO NOTHING;
     `, tagList);
 
+    //now that you added the tags to the table, you want to grab all the information about them from the table so you can return them to use in another function later
+    //write a query to Select all those tags whose names were In your tag list
+    //remember, you have something you could include in the query that adds the string of tag name placeholders for you
+    //remember, there's a little something you need to add to your query for it to know what array of tags it's supposed make placeholders for
+    //remember, this query gives you a result object, which includes the tags you want. how can you break down that results object to get those rows of tags?
+    //once you figure that out, might help to assign it as the variable for this query so you can return the tags after your query
     const {rows: tags} = await client.query(`
       SELECT * FROM tags
         WHERE name
@@ -226,6 +265,18 @@ async function createTags(tagList){
     return tags;
   } catch (error) {
     console.error("Error creating tags: ", error);
+  }
+}
+
+async function getAllTags(){
+  try {
+    const { rows: tags } = await client.query(`
+      SELECT *
+      FROM tags;
+    `)
+    return tags;
+  } catch (error) {
+    console.error('Error getting all tags: ', error);
   }
 }
 
@@ -305,4 +356,18 @@ async function getPostsByTagName(tagName) {
   }
 } 
 
-module.exports = { client, getAllUsers, createUser, updateUser, createPost, updatePost, getAllPosts, getPostsByTagName, getUserById, createTags, addTagsToPost };
+// export client and helper functions to use in seed.js
+module.exports = {
+  client,
+  getAllUsers,
+  createUser,
+  updateUser,
+  createPost,
+  updatePost,
+  getAllPosts,
+  getPostsByTagName,
+  getUserById,
+  createTags,
+  getAllTags,
+  addTagsToPost
+};

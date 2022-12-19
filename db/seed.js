@@ -1,5 +1,17 @@
-const { client, getAllUsers, createUser, updateUser, createPost, updatePost, getAllPosts, getPostsByTagName, getUserById } = require('./index');
+// import client and helper functions from index
+const {
+  client,
+  getAllUsers,
+  createUser,
+  updateUser,
+  createPost,
+  updatePost,
+  getAllPosts,
+  getPostsByTagName,
+  getUserById
+} = require('./index');
 
+// query to drop all tables bc each time program is run so it doesn't error out from queries duplicating data, trying to delete/update data that doesn't exist, etc.
 async function dropTables() {
   try {
     console.log('Dropping tables...');
@@ -15,6 +27,9 @@ async function dropTables() {
   }
 }
 
+// builds each table with their relevant fields.
+// foreign keys are in "double quotes" and REFERENCES a key from another table
+// access specific key with tableName(keyName)
 async function createTables() {
   try {
     console.log("Starting to build tables...");
@@ -118,8 +133,18 @@ async function createInitialPosts() {
 //   }
 // }
 
+/* 
+Seeding functions:
+--Making sure that the tables have correct definitions
+--Making sure that the tables have no unwanted data
+--Making sure that the tables have some data for us to play with
+--Making sure that the tables have necessary user-facing data
+*/
+// will be called each the program runs before testDb gets called- see bottom of the file
+// prevents errors from duplicating data, or attempting to manipulate data that no longer exists due to functions the last time the program ran
 async function rebuildDB(){
   try {
+    // connects client to db
     client.connect();
     await dropTables();
     await createTables();
@@ -130,6 +155,7 @@ async function rebuildDB(){
   }
 }
 
+// where our helper functions are called/tested
 async function testDB() {
   try {
     console.log("Starting to test database...");
