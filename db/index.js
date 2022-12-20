@@ -218,6 +218,21 @@ async function getUserById(userId){
   }
 }
 
+async function getUserByUsername(username){
+  try {
+    const {rows: [user]} = await client.query(`
+      SELECT *
+      FROM users
+      WHERE username=$1;
+    `, [username]);
+
+    return user;
+
+  } catch (error) {
+    console.error('Error getting user by username: ', error);
+  }
+}
+
 // passed an array of strings (tagList)
 async function createTags(tagList){
   
@@ -367,6 +382,7 @@ module.exports = {
   getAllPosts,
   getPostsByTagName,
   getUserById,
+  getUserByUsername,
   createTags,
   getAllTags,
   addTagsToPost

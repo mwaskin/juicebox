@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 // boilerplate for creating the server
 const PORT = 3000;
 const express = require('express');
