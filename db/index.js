@@ -84,7 +84,7 @@ async function createPost({ authorId, title, content, tags = [] }) {
 
     return await addTagsToPost(post.id, tagList);
   } catch (error) {
-    console.error("Error creating post: ", error)
+    throw error
   }
 }
 
